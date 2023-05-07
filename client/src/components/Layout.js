@@ -51,6 +51,8 @@ const Layout = ({ children, width, setRefresh }) => {
         return "Profile";
       case "logs":
         return "Logs";
+      case "security":
+        return "Security";
       default:
         return "Dashboard";
     }

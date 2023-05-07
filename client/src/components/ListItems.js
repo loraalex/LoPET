@@ -16,6 +16,7 @@ import withWidth from "@material-ui/core/withWidth";
 import { logout } from "../actions/auth";
 import { connect } from "react-redux";
 import MeetingRoomIcon from "@material-ui/icons/MeetingRoom";
+import LockIcon from '@material-ui/icons/Lock';
 
 import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
@@ -147,8 +148,22 @@ const ListItems = ({ handleDrawerClose, width, logout, getPageName }) => {
             </ListItemIcon>
             <ListItemText primary="Logs" />
           </ListItem>
+
+          <ListItem
+            button
+            selected={actualLocation === "security"}
+            onClick={() => {
+              changeLocation("/security");
+            }}
+          >
+            <ListItemIcon>
+              <LockIcon />
+            </ListItemIcon>
+            <ListItemText primary="Security" />
+          </ListItem>
         </div>
       </List>
+      
       <Divider />
       <List>
         <div>

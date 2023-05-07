@@ -21,4 +21,5 @@ export const MESSAGE_DETAIL = `${API}/messages/detail`;
 export const MESSAGE_DASHBOARD = `${API}/dashboard/top-messages`;
 
 export const LOGS = `${API}/logs`;
+export const SECURITY = `${API}/security`;
 

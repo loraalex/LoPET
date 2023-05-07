@@ -19,6 +19,7 @@ import NotFound from "./views/NotFound";
 import { loadUser } from "./actions/auth";
 import history from "./history";
 import Logs from "./views/Logs";
+import Security from "./views/Security/Security";
 
 const darkTheme = createMuiTheme({
   palette: {
@@ -56,6 +57,7 @@ function App({ loadUser, loading }) {
               <PrivateRoute exact path="/allMessages" component={AllMessages} />
               <PrivateRoute exact path="/profile" component={Profile} />
               <PrivateRoute exact path="/logs" component={Logs} />
+              <PrivateRoute exact path="/security" component={Security} />
               <Route component={NotFound} />
             </Switch>
           </Router>
