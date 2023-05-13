@@ -11,6 +11,7 @@ import TopList from "../Dashboard/TopList";
 import MyMap from "../Dashboard/MyMap";
 import DashboardMessages from "../Dashboard/DashboardMessages";
 import newStyles from "../../shared/newStyles";
+import Button from "@material-ui/core/Button";
 import MyTable from "../../components/MyTable";
 
 import {
@@ -30,17 +31,19 @@ import { withRouter } from "react-router-dom";
 
 
 import {
+  getCountOfPentests,
   getPentests
 } from "../../actions/security";
 
 const getColumnName = (column) => {
+  console.log(column)
   switch (column) {
     case "Timestamp":
-      return "start_at";
+      return "test_start_at";
     case "Name":
       return "name";
     case "Attacks in test":
-      return "description";
+      return "attack.type";
     case "Status":
       return "status";
   }
@@ -60,6 +63,8 @@ export const Security = ({
   penTests,
   countOfpenTests,
   setRowsPerPage,
+  getCountOfPentests,
+  getPentests,
   rowsPerPage,
 }) => {
   const localClasses = useStyles();
@@ -70,7 +75,7 @@ export const Security = ({
 
   React.useEffect(() => {
     if (refresh) {
-      //getCountOfApplications();
+      getCountOfPentests();
       getPentests({
         order,
         rowsPerPage,
@@ -81,7 +86,7 @@ export const Security = ({
     }
   }, [
     getPentests,
-    //getCountOfApplications,
+    getCountOfPentests,
     order,
     orderBy,
     page,
@@ -90,8 +95,8 @@ export const Security = ({
   ]);
 
   React.useEffect(() => {
-    //getCountOfApplications();
-    getPentests({ order: "asc", rowsPerPage, page: 1, column: "id" });
+    getCountOfPentests();
+    getPentests({ order: "asc", rowsPerPage, page: 1, column: "created_at" });
 
     return () => {
       cleanPentests();
@@ -100,17 +105,9 @@ export const Security = ({
   }, [
     cleanPentests, 
     getPentests, 
-    //getCountOfApplications
+    getCountOfPentests
   ]);
 
-  // const handleAddApplication = async () => {
-  //   try {
-  //     await applicationApi.addApplication();
-  //     callRefresh();
-  //   } catch (error) {
-  //     devConsole.log(error);
-  //   }
-  // };
 
   const handleOnRowClick = (index) => {
     history.push(`/security/${penTests[index].id}`);
@@ -120,42 +117,55 @@ export const Security = ({
     history.push(`/security/new-test`);
   };
 
+  const getAttacksInTest = (test) => {
+    const arr = test.attacks?.map((a) => a.type);
+
+    return arr[0];
+  }
+
+  const getTestStatus = (test) => {
+    const scheduledStatus = "SCHEDULED"
+    const doneStatus = "DONE";
+    const inProgressStatus = "IN PROGRESS"
+
+    let allDone = true;
+    let inProgress = false;
+    for(const attack of test?.attacks ?? []) {
+      if(attack.status !== doneStatus) {
+        allDone = false;
+      }
+      if(attack.status !== scheduledStatus) {
+        inProgress = true;
+      }
+    }
+
+    if(allDone)
+      return doneStatus;
+    if(inProgress)
+      return inProgressStatus;
+    
+    return scheduledStatus;
+  } 
+
   const rows = penTests.map((e, i) => {
     return [
       {
-        name: e?.id || "none",
-        content: e?.id || "none",
-      },
-      {
-        name: e.hasOwnProperty("created")
-          ? moment(e.created).format("DD.MM.YY, HH:mm:ss")
-          : "none",
-        content: e.hasOwnProperty("created")
-          ? moment(e.created).format("DD.MM.YY, HH:mm:ss")
-          : "none",
+        name: moment(e?.test_start_at).format("DD-MM-YYYY HH:mm") || "none",
+        content: moment(e?.test_start_at).format("DD-MM-YYYY HH:mm") || "none",
       },
       {
         name: e?.name || "none",
         content: e?.name || "none",
       },
       {
-        name: e?.description || "none",
-        content: e.hasOwnProperty("description")
-          ? truncate(e.description, 40)
-          : "none",
+        name: e.attacks?.map((a) => a.type).join(', ') || "none",
+        content: e.attacks?.map((a) => a.type).join(', ') || "none", //(e.attacks?.map((a) => a.type))[0]
       },
       {
-        name: e?.num_of_devices || "none",
-        content: e?.num_of_devices || "none",
+        name: getTestStatus(e) || "none",
+        content: getTestStatus(e) || "none",
       },
-      {
-        name: e?.num_of_uplink_messages || "none",
-        content: e?.num_of_uplink_messages || "none",
-      },
-      {
-        name: e?.num_of_downlink_messages || "none",
-        content: e?.num_of_downlink_messages || "none",
-      },
+      
     ];
   });
 
@@ -188,26 +198,25 @@ export const Security = ({
                 column: getColumnName(column),
               });
             }}
-            // rightNode={
-            //   <Tooltip title="Add application">
-            //     <Button
-            //       variant="outlined"
-            //       className={classes.tableButton}
-            //       startIcon={<AddIcon />}
-            //       onClick={handleAddApplication}
-            //     >
-            //       add
-            //     </Button>
-            //   </Tooltip>
-            // }
+            
           />
         </Paper>
       </Grid>
     </Grid>
 
+      <Grid container justify="center" xs={12}>
+      <Grid item>
       <div style={newStyles.dateInput}>
-          <button role="button" className="btn" onClick={handleOnNewTestClick} >NEW TEST</button>
-      </div>     
+          <Button className={localClasses.saveButton}
+                variant="contained"
+                color="primary"
+                onClick={handleOnNewTestClick}
+              >
+                NEW TEST
+              </Button>
+      </div>    
+      </Grid>
+      </Grid> 
     </React.Fragment>
   );
 };
@@ -225,7 +234,10 @@ const mapStateToProps = ({ result }) => ({
 });
 
 const mapDispatchToProps = {
-  getPentests
+  getPentests,
+  getCountOfPentests,
+  setRowsPerPage,
+  cleanPentests
 };
 
 export default connect(

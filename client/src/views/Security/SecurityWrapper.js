@@ -17,7 +17,7 @@ import Security from "./Security";
 import NewPentest from "./NewPentest";
 import PentestDetail from "./PentestDetail";
 
-function SecurityWrapper({ refresh, selected, classes, callRefresh }) {
+function SecurityWrapper({ history, refresh, selected, classes, callRefresh }) {
   let { path } = useRouteMatch();
   const [open, setOpen] = React.useState(false);
 
@@ -31,6 +31,7 @@ function SecurityWrapper({ refresh, selected, classes, callRefresh }) {
   };
 
   const handleConfirmClose = () => {
+    history.push('/security');
     callRefresh();
     setOpen(false);
   };
@@ -57,13 +58,7 @@ function SecurityWrapper({ refresh, selected, classes, callRefresh }) {
               </RouterLink>
               <Typography color="textPrimary">New test</Typography>
             </MyBreadcrumbs>
-            <NewPentest/>
-            {/* <ApplicationDetail
-              openSettings={open}
-              handleSettingsClose={handleClose}
-              handleConfirmClose={handleConfirmClose}
-              refresh={refresh}
-            /> */}
+            <NewPentest handleConfirmClose={handleConfirmClose}/>
           </React.Fragment>
         </Route>
 
@@ -97,12 +92,7 @@ function SecurityWrapper({ refresh, selected, classes, callRefresh }) {
               )}
             </MyBreadcrumbs>
             <PentestDetail />
-            {/* <ApplicationDetail
-              openSettings={open}
-              handleSettingsClose={handleClose}
-              handleConfirmClose={handleConfirmClose}
-              refresh={refresh}
-            /> */}
+
           </React.Fragment>
         </Route>
 
