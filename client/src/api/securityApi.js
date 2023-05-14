@@ -20,4 +20,8 @@ export default {
     );
     return appApi.post(`${SECURITY}/create-pentest`, payload);
   },
+  getPentestDetail(payload) {
+    devConsole.log("Sending request to get penTest detail from server..");
+    return appApi.post(`${SECURITY}/get-pentest`, payload);
+  },
 }

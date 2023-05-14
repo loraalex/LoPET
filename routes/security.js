@@ -124,17 +124,99 @@ router.post("/create-pentest", auth, async (req, res) => {
     }
 
 
-    await db.query(query.text);
-    await db.query(query2.text);
+    const r1 = await db.query(query.text);
+    const r2 = await db.query(query2.text);
 
+    console.log(req.body)
+    console.log(r1.rows)
+    console.log(r2.rows)
 
     res.json({});
-    console.log(req.body);
-
   } catch (err) {
     console.log(err);
     res.status(500).send("Server error");
   }
 }); 
+
+router.post("/get-pentest", auth, async (req, res) => {
+  try {
+    let { order, rowsPerPage, column, page } = req.body;
+
+    if(column === undefined)
+      column = "attack.id"
+    // attacker address 00ff99bb
+
+    const query = {
+      text:
+        'SELECT pen_test.target_address, pen_test.name, ' +
+        'attack.type, attack.status, attack.start_at, attack.finished_at, ' +
+        'uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr '+
+        'FROM pen_test ' +
+        'JOIN attack on attack.pen_test_id = pen_test.id ' +
+        'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
+        'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
+        'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
+        'WHERE pen_test.id = $1 ' +
+        `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
+        `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+      values: [req.body.testId],
+    };
+    console.log(query)
+    let { rows } = await db.query(query.text, query.values);
+
+    console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasnsnsnsnsnns')
+
+    if(rows.length == 0){
+      res.json(rows);
+      return;
+    }
+
+    const result = {
+      target_address: rows[0].target_address,
+      name: rows[0].name,
+      attacks: []
+    };
+
+    for(const row of rows) {
+        const attackFound = result.attacks.find((a) => a.type === row.type);
+
+        
+        const attack = {
+          type: row.type,
+          status: row.status,
+          start_at: row.start_at,
+          finished_at: row.finished_at,
+          uplinks: []
+        }
+
+        const uplink = {
+          receive_time: row.receive_time,
+          seq: row.seq,
+          app_data: row.app_data,
+          dev_addr: row.dev_addr
+        }
+
+        if(attackFound) {
+          attackFound.uplinks.push(uplink)
+        } else {
+          
+          //if row has uplink data add it to attack uplinks
+          if(uplink.dev_addr !== null)
+            attack.uplinks.push(uplink)
+
+          result.attacks.push(attack)
+        }
+    }
+
+    console.log(result)
+    //console.log(rows)
+
+    //return result as array
+    res.json([result]);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Server error");
+  }
+});
 
 module.exports = router;

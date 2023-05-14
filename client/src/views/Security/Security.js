@@ -150,19 +150,19 @@ export const Security = ({
   const rows = penTests.map((e, i) => {
     return [
       {
-        name: moment(e?.test_start_at).format("DD-MM-YYYY HH:mm") || "none",
+        name: "Show more details",
         content: moment(e?.test_start_at).format("DD-MM-YYYY HH:mm") || "none",
       },
       {
-        name: e?.name || "none",
+        name: "Show more details",
         content: e?.name || "none",
       },
       {
-        name: e.attacks?.map((a) => a.type).join(', ') || "none",
+        name: "Show more details",
         content: e.attacks?.map((a) => a.type).join(', ') || "none", //(e.attacks?.map((a) => a.type))[0]
       },
       {
-        name: getTestStatus(e) || "none",
+        name: "Show more details",
         content: getTestStatus(e) || "none",
       },
       

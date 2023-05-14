@@ -73,22 +73,16 @@ function SecurityWrapper({ history, refresh, selected, classes, callRefresh }) {
               <RouterLink
                 className={classes.breadCrumpsLink}
                 color="textPrimary"
-                to={"/applications"}
+                to={"/security"}
               >
-                Applications
+                Security
               </RouterLink>
               {selected.data === undefined ? null : (
-                <Button
-                  size="small"
-                  className={classes.breadCrumpsButton}
-                  endIcon={selected.data === null ? null : <SettingsIcon />}
-                  onClick={handleClickOpen}
-                  disabled={selected.data === null}
-                >
-                  {selected.data?.name && selected?.type === "application"
-                    ? selected.data?.name
-                    : "loading"}
-                </Button>
+                <Typography color="textPrimary">
+                  {selected.data?.name && selected?.type === "pentest"
+                  ? selected.data?.name
+                  : "loading"}
+                </Typography>
               )}
             </MyBreadcrumbs>
             <PentestDetail />
