@@ -16,6 +16,7 @@ import devConsole from "../../devConsole";
 import Security from "./Security";
 import NewPentest from "./NewPentest";
 import PentestDetail from "./PentestDetail";
+import AttackDetail from "./AttackDetail";
 
 function SecurityWrapper({ history, refresh, selected, classes, callRefresh }) {
   let { path } = useRouteMatch();
@@ -67,8 +68,8 @@ function SecurityWrapper({ history, refresh, selected, classes, callRefresh }) {
 
 
 
-        <Route exact path={`${path}/:id`}>
-          <React.Fragment>
+        <Route exact path={`${path}/test/:id`}>
+          
             <MyBreadcrumbs>
               <RouterLink
                 className={classes.breadCrumpsLink}
@@ -85,7 +86,32 @@ function SecurityWrapper({ history, refresh, selected, classes, callRefresh }) {
                 </Typography>
               )}
             </MyBreadcrumbs>
-            <PentestDetail />
+            <PentestDetail refresh={refresh} callRefresh={callRefresh} />
+
+          
+        </Route>
+
+
+        <Route exact path={`${path}/attack/:id`}>
+          <React.Fragment>
+            <MyBreadcrumbs>
+              <RouterLink
+                className={classes.breadCrumpsLink}
+                color="textPrimary"
+                to={"/security"}
+              >
+                Security
+              </RouterLink>
+
+              {selected.data === undefined ? null : (
+                <Typography color="textPrimary">
+                  {selected.data?.name && selected?.type === "pentest"
+                  ? selected.data?.name
+                  : "Attack detail"}
+                </Typography>
+              )}
+            </MyBreadcrumbs>
+            <AttackDetail />
 
           </React.Fragment>
         </Route>

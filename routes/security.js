@@ -59,7 +59,7 @@ router.post("/", auth, async (req, res) => {
 router.get("/", auth, async (req, res) => {
   try {
     const query = {
-      text: "SELECT COUNT(DISTINCT pen_test.id) FROM pen_test JOIN attack on attack.pen_test_id = pen_test.id",
+      text: "SELECT COUNT(DISTINCT pen_test.id) FROM pen_test",
     };
 
     let { rows } = await db.query(query.text);
@@ -148,17 +148,17 @@ router.post("/get-pentest", auth, async (req, res) => {
 
     const query = {
       text:
-        'SELECT pen_test.target_address, pen_test.name, ' +
-        'attack.type, attack.status, attack.start_at, attack.finished_at, ' +
+        'SELECT pen_test.target_address, pen_test.name, pen_test.id, ' +
+        'attack.type, attack.status, attack.start_at, attack.finished_at, attack.id, ' +
         'uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr '+
         'FROM pen_test ' +
         'JOIN attack on attack.pen_test_id = pen_test.id ' +
         'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
         'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
         'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
-        'WHERE pen_test.id = $1 ' +
-        `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
-        `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+        'WHERE pen_test.id = $1', //+
+        // `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
+        // `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
       values: [req.body.testId],
     };
     console.log(query)
@@ -182,6 +182,7 @@ router.post("/get-pentest", auth, async (req, res) => {
 
         
         const attack = {
+          id: row.id,
           type: row.type,
           status: row.status,
           start_at: row.start_at,
@@ -216,6 +217,66 @@ router.post("/get-pentest", auth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).send("Server error");
+  }
+});
+
+
+router.post("/get-attack", auth, async (req, res) => {
+  try {
+    let { order, rowsPerPage, column, page } = req.body;
+    console.log(req.body);
+    if (column == undefined) {
+      column = 'receive_time';
+    }
+    const query = {
+      text:
+        'SELECT uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr, attack.status, attack.type, pen_test.name '+
+        'FROM pen_test ' +
+        'JOIN attack on attack.pen_test_id = pen_test.id ' +
+        'JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
+        'JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
+        'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
+        'WHERE attack.id = $1' +
+        `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
+        `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+      values: [req.body.testId],
+    };
+
+    let { rows } = await db.query(query.text, query.values);
+
+    console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasnsnsnsnsnns')
+
+    res.json(rows);
+    return;
+
+  } catch (err) {
+    res.status(500).send("Server error");
+    console.log(err);
+  }
+});
+
+router.post("/message-count", auth, async (req, res) => {
+  try {
+    const query = {
+      text: 
+      'SELECT COUNT(uplink_messages.id) '+
+        'FROM pen_test ' +
+        'JOIN attack on attack.pen_test_id = pen_test.id ' +
+        'JOIN nodes on (pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\') '+ 
+        'JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
+        'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
+        'WHERE attack.id = $1',
+    values: [req.body.testId],
+    };
+    console.log(query);
+
+    let { rows } = await db.query(query.text, query.values);
+    console.log(rows);
+    console.log(rows.length);
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+    console.log(err);
   }
 });
 

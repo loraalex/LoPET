@@ -13,6 +13,7 @@ import DashboardMessages from "../Dashboard/DashboardMessages";
 import newStyles from "../../shared/newStyles";
 import Button from "@material-ui/core/Button";
 import MyTable from "../../components/MyTable";
+import { useParams } from "react-router-dom";
 
 import {
   setRowsPerPage,
@@ -31,43 +32,44 @@ import { withRouter } from "react-router-dom";
 
 
 import {
-  getCountOfPentests,
-  getPentests
+  getAttackDetailCount,
+  getAttackDetail
 } from "../../actions/security";
 
 const getColumnName = (column) => {
   console.log(column)
   switch (column) {
-    case "Started at":
-      return "test_start_at";
-    case "Name":
-      return "name";
-    case "Attacks in test":
-      return "attack.type";
-    case "Status":
-      return "status";
+    case "Received at":
+      return "receive_time";
+    case "Data":
+      return "app_data";
+    case "FCnt":
+      return "seq";
+    case "Device address":
+      return "dev_addr";
   }
 };  
 
 const headCells = [
-  { name: "Started at", content: "Started at" },
-  { name: "Name", content: "Name" },
-  { name: "Attacks in test", content: "Attacks in test" },
-  { name: "Status", content: "Status" },
+  { name: "Received at", content: "Received at" },
+  { name: "Data", content: "Data" },
+  { name: "FCnt", content: "FCnt" },
+  { name: "Device address", content: "Device address" },
 ];
 
 export const Security = ({ 
   history,
   refresh,
   classes,
-  penTests,
+  attacks,
   countOfpenTests,
   setRowsPerPage,
-  getCountOfPentests,
-  getPentests,
+  getAttackDetail,
+  getAttackDetailCount,
   rowsPerPage,
 }) => {
   const localClasses = useStyles();
+  let { id } = useParams();
 
   const [page, setPage] = React.useState(0);
   const [orderBy, setOrderBy] = React.useState(0);
@@ -75,8 +77,9 @@ export const Security = ({
 
   React.useEffect(() => {
     if (refresh) {
-      getCountOfPentests();
-      getPentests({
+      getAttackDetailCount({testId: id,});
+      getAttackDetail({
+        testId: id,
         order,
         rowsPerPage,
         page: 1,
@@ -85,8 +88,8 @@ export const Security = ({
       setPage(0);
     }
   }, [
-    getPentests,
-    getCountOfPentests,
+    getAttackDetail,
+    getAttackDetailCount,
     order,
     orderBy,
     page,
@@ -95,8 +98,14 @@ export const Security = ({
   ]);
 
   React.useEffect(() => {
-    getCountOfPentests();
-    getPentests({ order: "asc", rowsPerPage, page: 1, column: "created_at" });
+    getAttackDetailCount({testId: id,});
+    getAttackDetail({
+      testId: id,
+      order,
+      rowsPerPage,
+      page: 1,
+      column: getColumnName(headCells[orderBy]),
+    });
 
     return () => {
       cleanPentests();
@@ -104,66 +113,40 @@ export const Security = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     cleanPentests, 
-    getPentests, 
-    getCountOfPentests
+    getAttackDetail,
+    getAttackDetailCount
   ]);
 
 
   const handleOnRowClick = (index) => {
-    history.push(`/security/test/${penTests[index].id}`);
+    // history.push(`/security/test/${attacks[index].id}`);
+    console.log(attacks);
   };
 
   const handleOnNewTestClick = (index) => {
-    history.push(`/security/new-test`);
+    console.log(attacks);
+    console.log(rows)
+    console.log(attacks.attacks.map((a) => a));
   };
 
-  const getAttacksInTest = (test) => {
-    const arr = test.attacks?.map((a) => a.type);
 
-    return arr[0];
-  }
-
-  const getTestStatus = (test) => {
-    const scheduledStatus = "SCHEDULED"
-    const doneStatus = "FINISHED";
-    const inProgressStatus = "IN PROGRESS"
-
-    let allDone = true;
-    let inProgress = false;
-    for(const attack of test?.attacks ?? []) {
-      if(!attack.status.includes(doneStatus) ) {
-        allDone = false;
-      }
-      if(attack.status !== scheduledStatus) {
-        inProgress = true;
-      }
-    }
-
-    if(allDone)
-      return doneStatus;
-    if(inProgress)
-      return inProgressStatus;
-    
-    return scheduledStatus;
-  } 
-
-  const rows = typeof penTests?.map !== 'function'? [] : penTests?.map((e, i) => {
+  const rows = attacks?.map((e, i) => {
     return [
       {
         name: "Show more details",
-        content: moment(e?.test_start_at).format("DD-MM-YYYY HH:mm") || "none",
+        content: moment(e?.receive_time).format("DD-MM-YYYY HH:mm:ss") || "none",
       },
       {
         name: "Show more details",
-        content: e?.name || "none",
+        content: e?.app_data || "none",
       },
       {
         name: "Show more details",
-        content: e.attacks?.map((a) => a.type).join(', ') || "none", //(e.attacks?.map((a) => a.type))[0]
+        content: e.seq, 
       },
       {
         name: "Show more details",
-        content: getTestStatus(e) || "none",
+        content: e.dev_addr || "none",
       },
       
     ];
@@ -177,7 +160,7 @@ export const Security = ({
           <MyTable
             rows={rows}
             headCells={headCells}
-            tableTitle={"History of Tests"}
+            tableTitle={"Frames"}
             onRowClick={handleOnRowClick}
             countOfRows={countOfpenTests}
             showPagination={true}
@@ -191,32 +174,45 @@ export const Security = ({
             order={order}
             setOrder={setOrder}
             fetchRecords={({ order, rowsPerPage, page, column }) => {
-              getPentests({
+              getAttackDetail({
+                testId: id,
                 order,
                 rowsPerPage,
                 page,
-                column: getColumnName(column),
+                column: getColumnName(headCells[orderBy]),
               });
             }}
-            
           />
         </Paper>
-      </Grid>
+        </Grid>
+
+        {(attacks[0]?.type === 'Eavesdropping' && !attacks[0]?.status?.includes("FINISH")) ? 
+          <Grid container justify="center" xs={12}>
+            <Grid item>
+              <div style={newStyles.dateInput}>
+                <Button className={localClasses.saveButton}
+                  variant="contained"
+                  color="primary"
+                >
+                  STOP & EVALUATE
+                </Button>
+              </div>
+            </Grid>
+          </Grid>
+            : null
+        }
+        
+
+        <Grid item xs={12}>
+          Status: {attacks[0]?.status}
+        </Grid>
+        <Grid item xs={12}>
+          Attack name: {attacks[0]?.name}
+        </Grid>
     </Grid>
 
-      <Grid container justify="center" xs={12}>
-      <Grid item>
-      <div style={newStyles.dateInput}>
-          <Button className={localClasses.saveButton}
-                variant="contained"
-                color="primary"
-                onClick={handleOnNewTestClick}
-              >
-                NEW TEST
-              </Button>
-      </div>    
-      </Grid>
-      </Grid> 
+    
+
     </React.Fragment>
   );
 };
@@ -228,14 +224,14 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const mapStateToProps = ({ result }) => ({
-  penTests: result.results,
+  attacks: result.results,
   countOfpenTests:  result.countOfResults,
   rowsPerPage: result.rowsPerPage,
 });
 
 const mapDispatchToProps = {
-  getPentests,
-  getCountOfPentests,
+  getAttackDetail,
+  getAttackDetailCount,
   setRowsPerPage,
   cleanPentests
 };

@@ -24,4 +24,16 @@ export default {
     devConsole.log("Sending request to get penTest detail from server..");
     return appApi.post(`${SECURITY}/get-pentest`, payload);
   },
+  getAttackDetail(payload) {
+    devConsole.log(
+      "Sending request to get Attack detail from server.."
+    );
+    return appApi.post(`${SECURITY}/get-attack`, payload);
+  },
+  getAttackDetailCount(payload) {
+    devConsole.log(
+      "Sending request to get Attack detail count from server.."
+    );
+    return appApi.post(`${SECURITY}/message-count`, payload);
+  },
 }

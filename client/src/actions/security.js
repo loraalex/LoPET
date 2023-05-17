@@ -55,6 +55,21 @@ export const createPentest = (data) => async (dispatch) => {
   }
 };
 
+export const getAttackDetail = (data) => async (dispatch) => {
+  try {
+    console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'); 
+    console.log(data);
+    const res = await securityApi.getAttackDetail(data);
+    
+    dispatch({
+      type: SET_RESULTS,
+      payload: res.data,
+    });
+  } catch (err) {
+    devConsole.log(err);
+  }
+};
+
 
 export const getPentestDetail = (payload) => async (dispatch) => {
   try {
@@ -87,6 +102,19 @@ export const getPentestDetail = (payload) => async (dispatch) => {
         type: undefined,
       },
     });
+    devConsole.log(err);
+  }
+};
+
+export const getAttackDetailCount = (data) => async (dispatch) => {
+  try {
+    const res = await securityApi.getAttackDetailCount(data);
+
+    dispatch({
+      type: SET_COUNT_RESULTS,
+      payload: res.data.count,
+    });
+  } catch (err) {
     devConsole.log(err);
   }
 };
