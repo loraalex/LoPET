@@ -10,12 +10,27 @@ router.post("/", auth, async (req, res) => {
 
     const query = {
       text:
-        'SELECT pen_test.id, pen_test.start_at as test_start_at, pen_test."name", ' +
-        'attack.type, attack.status, attack.start_at, attack.finished_at ' +
-        'FROM pen_test ' +
-        'JOIN attack on attack.pen_test_id = pen_test.id ' +
-        `ORDER BY ${column} ${order.toUpperCase()}, pen_test.id ${order.toUpperCase()} ` +
-        `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+        `
+        SELECT pen_test.id, pen_test.start_at as test_start_at, pen_test."name",
+              attack.type, attack.status, attack.start_at, attack.finished_at
+        FROM (
+          SELECT pen_test.id, pen_test.start_at, pen_test."name",
+                ROW_NUMBER() OVER (ORDER BY pen_test.id) AS rn
+          FROM pen_test
+          ORDER BY pen_test.id
+          LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}
+        ) AS pen_test
+        JOIN attack ON attack.pen_test_id = pen_test.id
+        ORDER BY ${column} ${order.toUpperCase()}, pen_test.id ${order.toUpperCase()}
+        `
+      
+
+        // 'SELECT pen_test.id, pen_test.start_at as test_start_at, pen_test."name", ' +
+        // 'attack.type, attack.status, attack.start_at, attack.finished_at ' +
+        // 'FROM pen_test ' +
+        // 'JOIN attack on attack.pen_test_id = pen_test.id ' +
+        // `ORDER BY ${column} ${order.toUpperCase()}, pen_test.id ${order.toUpperCase()} ` +
+        // `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
     };
 
     console.log(query.text)
@@ -148,23 +163,31 @@ router.post("/get-pentest", auth, async (req, res) => {
 
     const query = {
       text:
-        'SELECT pen_test.target_address, pen_test.name, pen_test.id, ' +
-        'attack.type, attack.status, attack.start_at, attack.finished_at, attack.id, ' +
-        'uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr '+
-        'FROM pen_test ' +
-        'JOIN attack on attack.pen_test_id = pen_test.id ' +
-        'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
-        'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
-        'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
-        'WHERE pen_test.id = $1', //+
-        // `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
-        // `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+        `
+          SELECT pen_test.target_address, pen_test.name, pen_test.id, pen_test.start_at as test_start, pen_test.finished_at as test_finish,
+          attack.type, attack.status, attack.start_at, attack.finished_at, attack.id,
+          COUNT(uplink_messages.id) AS message_count
+          FROM pen_test
+          JOIN attack ON attack.pen_test_id = pen_test.id
+          FULL JOIN nodes ON (pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = '00ff99bb')
+          FULL JOIN uplink_messages ON nodes.id = uplink_messages.node_id AND
+              uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP)
+          WHERE pen_test.id = $1
+          GROUP BY pen_test.target_address, pen_test.name, pen_test.id,
+                  attack.type, attack.status, attack.start_at, attack.finished_at, attack.id
+        `,
+        // 'SELECT pen_test.target_address, pen_test.name, pen_test.id, ' +
+        // 'attack.type, attack.status, attack.start_at, attack.finished_at, attack.id ' +
+        // 'FROM pen_test ' +
+        // 'JOIN attack on attack.pen_test_id = pen_test.id ' +
+        // 'WHERE pen_test.id = $1', 
       values: [req.body.testId],
     };
     console.log(query)
     let { rows } = await db.query(query.text, query.values);
 
     console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasnsnsnsnsnns')
+    console.log(rows)
 
     if(rows.length == 0){
       res.json(rows);
@@ -174,6 +197,8 @@ router.post("/get-pentest", auth, async (req, res) => {
     const result = {
       target_address: rows[0].target_address,
       name: rows[0].name,
+      test_start: rows[0].test_start,
+      test_finish: rows[0].test_finish,
       attacks: []
     };
 
@@ -187,23 +212,23 @@ router.post("/get-pentest", auth, async (req, res) => {
           status: row.status,
           start_at: row.start_at,
           finished_at: row.finished_at,
-          uplinks: []
+          message_count: row.message_count
         }
 
-        const uplink = {
-          receive_time: row.receive_time,
-          seq: row.seq,
-          app_data: row.app_data,
-          dev_addr: row.dev_addr
-        }
+        // const uplink = {
+        //   receive_time: row.receive_time,
+        //   seq: row.seq,
+        //   app_data: row.app_data,
+        //   dev_addr: row.dev_addr
+        // }
 
         if(attackFound) {
-          attackFound.uplinks.push(uplink)
+          //attackFound.uplinks.push(uplink)
         } else {
           
           //if row has uplink data add it to attack uplinks
-          if(uplink.dev_addr !== null)
-            attack.uplinks.push(uplink)
+          // if(uplink.dev_addr !== null)
+          //   attack.uplinks.push(uplink)
 
           result.attacks.push(attack)
         }
@@ -233,8 +258,8 @@ router.post("/get-attack", auth, async (req, res) => {
         'SELECT uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr, attack.status, attack.type, pen_test.name '+
         'FROM pen_test ' +
         'JOIN attack on attack.pen_test_id = pen_test.id ' +
-        'JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
-        'JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
+        'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
+        'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
         'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
         'WHERE attack.id = $1' +
         `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +

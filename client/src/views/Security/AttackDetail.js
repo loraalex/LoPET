@@ -207,7 +207,7 @@ export const Security = ({
           Status: {attacks[0]?.status}
         </Grid>
         <Grid item xs={12}>
-          Attack name: {attacks[0]?.name}
+          Test name: {attacks[0]?.name + " - " + attacks[0]?.type}
         </Grid>
     </Grid>
 

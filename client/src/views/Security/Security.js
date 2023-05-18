@@ -96,7 +96,7 @@ export const Security = ({
 
   React.useEffect(() => {
     getCountOfPentests();
-    getPentests({ order: "asc", rowsPerPage, page: 1, column: "created_at" });
+    getPentests({ order: "asc", rowsPerPage, page: 1, column: "test_start_at" });
 
     return () => {
       cleanPentests();
