@@ -261,17 +261,35 @@ router.post("/get-attack", auth, async (req, res) => {
         'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
         'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
         'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
-        'WHERE attack.id = $1' +
+        'WHERE attack.id = $1 ' +
+        'AND uplink_messages.receive_time IS NOT NULL AND uplink_messages.seq IS NOT NULL ' +
         `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
         `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
       values: [req.body.testId],
     };
 
-    let { rows } = await db.query(query.text, query.values);
+    let result = await db.query(query.text, query.values);
+    if (result.rows.length == 0) {
+      const query = {
+        text:
+          'SELECT uplink_messages.receive_time, uplink_messages.seq, uplink_messages.app_data, nodes.dev_addr, attack.status, attack.type, pen_test.name '+
+          'FROM pen_test ' +
+          'JOIN attack on attack.pen_test_id = pen_test.id ' +
+          'FULL JOIN nodes on pen_test.target_address = nodes.dev_addr OR nodes.dev_addr = \'00ff99bb\' '+ 
+          'FULL JOIN uplink_messages on nodes.id = uplink_messages.node_id AND ' +
+          'uplink_messages.receive_time BETWEEN COALESCE(attack.start_at, CURRENT_TIMESTAMP) AND COALESCE(attack.finished_at, CURRENT_TIMESTAMP) '+
+          'WHERE attack.id = $1 ' +
+          `ORDER BY ${column} ${order.toUpperCase()}, attack.id ${order.toUpperCase()} ` +
+          `LIMIT ${rowsPerPage} OFFSET ${rowsPerPage * page - rowsPerPage}`,
+        values: [req.body.testId],
+      };
+
+      result = await db.query(query.text, query.values);
+    }
 
     console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasnsnsnsnsnns')
 
-    res.json(rows);
+    res.json(result.rows);
     return;
 
   } catch (err) {
